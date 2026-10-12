@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#121212">
+
+    <!-- ScrollView para permitir a rolagem suave de todo o documento -->
+    <ScrollView
+        android:id="@+id/scrollViewPdf"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <!-- PhotoView único que suporta zoom em todo o documento -->
+        <com.github.chrisbanes.photoview.PhotoView
+            android:id="@+id/ivPdfFull"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true" />
+
+    </ScrollView>
+
+    <!-- Barra inferior com os controlos de Auto-Scroll e Velocidade -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="#1F1F1F"
+        android:gravity="center_vertical">
+
+        <Button
+            android:id="@+id/btnToggleScroll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Iniciar Auto-Scroll"
+            android:backgroundTint="#333333"
+            android:textColor="#FFFFFF"
+            android:layout_marginEnd="12dp" />
+
+        <SeekBar
+            android:id="@+id/seekBarSpeed"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="10"
+            android:progress="2" />
+
+    </LinearLayout>
+
+</LinearLayout>
