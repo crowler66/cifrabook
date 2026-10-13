@@ -11,7 +11,11 @@ import android.widget.Button
 import android.widget.ScrollView
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.github.chrisbanes.photoview.PhotoView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PdfViewerActivity : AppCompatActivity() {
 
@@ -22,14 +26,14 @@ class PdfViewerActivity : AppCompatActivity() {
 
     private var isScrolling = false
     private val scrollHandler = Handler(Looper.getMainLooper())
-    private var scrollSpeed = 2L
+
+    private var scrollDelay = 35L
 
     private val scrollRunnable = object : Runnable {
         override fun run() {
             if (isScrolling) {
-                // Rola o ScrollView verticalmente de forma contínua
-                scrollViewPdf.smoothScrollBy(0, scrollSpeed.toInt())
-                scrollHandler.postDelayed(this, 30)
+                scrollViewPdf.smoothScrollBy(0, 1)
+                scrollHandler.postDelayed(this, scrollDelay)
             }
         }
     }
@@ -43,18 +47,28 @@ class PdfViewerActivity : AppCompatActivity() {
         btnToggleScroll = findViewById(R.id.btnToggleScroll)
         seekBarSpeed = findViewById(R.id.seekBarSpeed)
 
-        // Recebe o URI da cifra e renderiza todas as páginas num único Bitmap
         val pdfUriString = intent.getStringExtra("PDF_URI")
         if (pdfUriString != null) {
             RecentManager.addRecent(this, pdfUriString)
             val uri = Uri.parse(pdfUriString)
-            val combinedBitmap = renderPdfToOneBitmap(uri)
-            if (combinedBitmap != null) {
-                ivPdfFull.setImageBitmap(combinedBitmap)
+
+            btnToggleScroll.isEnabled = false
+            btnToggleScroll.text = "A carregar cifra..."
+
+            lifecycleScope.launch {
+                val combinedBitmap = withContext(Dispatchers.IO) {
+                    renderPdfToOneBitmap(uri)
+                }
+
+                if (combinedBitmap != null) {
+                    ivPdfFull.setImageBitmap(combinedBitmap)
+                }
+
+                btnToggleScroll.isEnabled = true
+                btnToggleScroll.text = "Iniciar Auto-Scroll"
             }
         }
 
-        // Configurar o Botão de Play/Pause do Auto-Scroll
         btnToggleScroll.setOnClickListener {
             isScrolling = !isScrolling
             if (isScrolling) {
@@ -66,17 +80,17 @@ class PdfViewerActivity : AppCompatActivity() {
             }
         }
 
-        // Configurar a barra de velocidade de rolagem
+        // Barra de velocidade com início lento preservado e máximo estendido
         seekBarSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                scrollSpeed = progress.toLong().coerceAtLeast(1L)
+                val safeProgress = progress.coerceIn(1, 10)
+                scrollDelay = (95 - (safeProgress * 9)).coerceAtLeast(8).toLong()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
     }
 
-    // Função que converte todas as páginas do PDF e une-as verticalmente numa só imagem
     private fun renderPdfToOneBitmap(uri: Uri): Bitmap? {
         try {
             val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r") ?: return null
@@ -89,7 +103,6 @@ class PdfViewerActivity : AppCompatActivity() {
 
             for (i in 0 until pageCount) {
                 val page = pdfRenderer.openPage(i)
-                // Multiplicador 2x para garantir excelente nitidez ao aplicar o zoom
                 val bitmap = Bitmap.createBitmap(page.width * 2, page.height * 2, Bitmap.Config.ARGB_8888)
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 bitmaps.add(bitmap)
@@ -99,7 +112,6 @@ class PdfViewerActivity : AppCompatActivity() {
                 page.close()
             }
 
-            // Cria o bitmap unificado (todas as páginas empilhadas verticalmente)
             val combinedBitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(combinedBitmap)
             var currentY = 0f

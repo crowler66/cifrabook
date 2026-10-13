@@ -3,13 +3,12 @@ package com.example.cifrabook
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.Button
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
@@ -38,8 +37,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Define o título da tela ou barra superior como "O seu livro de cifras"
+        supportActionBar?.title = "O seu livro de Cifras"
+
         recyclerViewCifras = findViewById(R.id.recyclerViewCifras)
-        recyclerViewCifras.layoutManager = LinearLayoutManager(this)
+
+        // Grade com 2 colunas para os botões se espalharem bem pela tela
+        recyclerViewCifras.layoutManager = GridLayoutManager(this, 2)
 
         val fabAddPdf = findViewById<FloatingActionButton>(
             R.id.fabAddPdf
@@ -53,11 +57,11 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        // Busca a lista de cifras recentes salvas no aparelho
-        val listaCifrasRecentes = RecentManager.getRecents(this)
+        // Pega as cifras recentes e aumenta o limite para até 15 itens
+        val listaCifrasRecentes = RecentManager.getRecents(this).take(15)
 
-        // Liga a lista ao RecyclerView da tela principal
-        recyclerViewCifras.adapter = RecentesAdapter(listaCifrasRecentes) { uriString ->
+        // Liga a lista ao RecyclerView usando o adapter de botões em grade
+        recyclerViewCifras.adapter = RecentesBotoesAdapter(listaCifrasRecentes) { uriString ->
             val uri = Uri.parse(uriString)
             abrirLeitorPdf(uri)
         }
@@ -70,48 +74,65 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // Adapter para desenhar as cifras recentes na lista principal com o nome real do arquivo
-    class RecentesAdapter(
+    // Adapter com botões estilizados, limite de 15 itens e até 17 caracteres no nome
+    class RecentesBotoesAdapter(
         private val items: List<String>,
         private val onClick: (String) -> Unit
-    ) : RecyclerView.Adapter<RecentesAdapter.ViewHolder>() {
+    ) : RecyclerView.Adapter<RecentesBotoesAdapter.ViewHolder>() {
 
-        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val tvItem: TextView = view.findViewById(android.R.id.text1)
-        }
+        class ViewHolder(val btnCifra: Button) : RecyclerView.ViewHolder(btnCifra)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(android.R.layout.simple_list_item_1, parent, false)
-            return ViewHolder(view)
+            val context = parent.context
+            val button = Button(context).apply {
+                layoutParams = RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(10, 10, 10, 10)
+                }
+                isAllCaps = false
+                textSize = 14f
+                setTextColor(0xFFFFFFFF.toInt())
+                setBackgroundColor(0xFF2D2D2D.toInt()) // Tom escuro elegante
+                setPadding(16, 24, 16, 24)
+            }
+            return ViewHolder(button)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val uriString = items[position]
             val uri = Uri.parse(uriString)
 
-            // Tenta obter o nome real do arquivo PDF através do ContentResolver
-            var nomeCifra = "Cifra Recente"
+            var nomeCifra = "Cifra"
             val cursor = holder.itemView.context.contentResolver.query(uri, null, null, null, null)
             cursor?.use {
                 if (it.moveToFirst()) {
                     val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                     if (nameIndex != -1) {
-                        nomeCifra = it.getString(nameIndex)
+                        nomeCifra = it.getString(nameIndex) ?: "Cifra"
                     }
                 }
             }
 
-            // Se falhar a consulta, recorre ao método alternativo
-            if (nomeCifra == "Cifra Recente" || nomeCifra.isEmpty()) {
-                nomeCifra = uri.lastPathSegment ?: "Cifra Recente"
+            if (nomeCifra == "Cifra" || nomeCifra.isEmpty()) {
+                nomeCifra = uri.lastPathSegment ?: "Cifra"
                 val idx = nomeCifra.lastIndexOf('/')
                 if (idx != -1) nomeCifra = nomeCifra.substring(idx + 1)
             }
 
-            holder.tvItem.text = nomeCifra
-            holder.tvItem.setTextColor(0xFFFFFFFF.toInt()) // Texto branco para combinar com o fundo escuro
-            holder.itemView.setOnClickListener { onClick(uriString) }
+            // Remove a extensão .pdf
+            if (nomeCifra.endsWith(".pdf", ignoreCase = true)) {
+                nomeCifra = nomeCifra.substring(0, nomeCifra.length - 4)
+            }
+
+            // Limita o nome a 17 caracteres para manter o botão organizado
+            if (nomeCifra.length > 17) {
+                nomeCifra = nomeCifra.take(17) + "..."
+            }
+
+            holder.btnCifra.text = nomeCifra
+            holder.btnCifra.setOnClickListener { onClick(uriString) }
         }
 
         override fun getItemCount(): Int = items.size
