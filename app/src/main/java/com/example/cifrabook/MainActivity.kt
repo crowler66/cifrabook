@@ -3,7 +3,6 @@ package com.example.cifrabook
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +10,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,10 +27,16 @@ class MainActivity : AppCompatActivity() {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             } catch (e: SecurityException) {
-                // Continua mesmo se a permissão persistente não for concedida.
+                // Ignora se não for suportado
             }
 
-            abrirLeitorPdf(uri)
+            // Copia o PDF para o armazenamento interno da app de forma segura
+            val arquivoInternoUri = copiarUriParaArmazenamentoInterno(uri)
+
+            if (arquivoInternoUri != null) {
+                RecentManager.addRecent(this, arquivoInternoUri.toString())
+                abrirLeitorPdf(arquivoInternoUri)
+            }
         }
     }
 
@@ -37,18 +44,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Define o título da tela ou barra superior como "O seu livro de cifras"
         supportActionBar?.title = "O seu livro de Cifras"
 
         recyclerViewCifras = findViewById(R.id.recyclerViewCifras)
-
-        // Grade com 2 colunas para os botões se espalharem bem pela tela
         recyclerViewCifras.layoutManager = GridLayoutManager(this, 2)
 
-        val fabAddPdf = findViewById<FloatingActionButton>(
-            R.id.fabAddPdf
-        )
-
+        val fabAddPdf = findViewById<FloatingActionButton>(R.id.fabAddPdf)
         fabAddPdf.setOnClickListener {
             selecionarPdfLauncher.launch(arrayOf("application/pdf"))
         }
@@ -57,10 +58,12 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        // Pega as cifras recentes e aumenta o limite para até 15 itens
-        val listaCifrasRecentes = RecentManager.getRecents(this).take(15)
+        // BUSCA OS RECENTES E OCULTA QUALQUER COISA COM "msf:" DE FORMA SEGURA
+        val listaBruta = RecentManager.getRecents(this)
+        val listaCifrasRecentes = listaBruta.filter {
+            !it.isNullOrBlank() && !it.contains("msf:")
+        }.take(15)
 
-        // Liga a lista ao RecyclerView usando o adapter de botões em grade
         recyclerViewCifras.adapter = RecentesBotoesAdapter(listaCifrasRecentes) { uriString ->
             val uri = Uri.parse(uriString)
             abrirLeitorPdf(uri)
@@ -74,7 +77,37 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // Adapter com botões estilizados, limite de 15 itens e até 17 caracteres no nome
+    private fun copiarUriParaArmazenamentoInterno(uri: Uri): Uri? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+
+            var nomeArquivo = "cifra_${System.currentTimeMillis()}.pdf"
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1) {
+                        val nomeReal = it.getString(nameIndex)
+                        if (!nomeReal.isNullOrEmpty()) {
+                            nomeArquivo = nomeReal
+                        }
+                    }
+                }
+            }
+
+            val file = File(filesDir, nomeArquivo)
+            FileOutputStream(file).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    // Adapter atualizado
     class RecentesBotoesAdapter(
         private val items: List<String>,
         private val onClick: (String) -> Unit
@@ -94,7 +127,7 @@ class MainActivity : AppCompatActivity() {
                 isAllCaps = false
                 textSize = 14f
                 setTextColor(0xFFFFFFFF.toInt())
-                setBackgroundColor(0xFF2D2D2D.toInt()) // Tom escuro elegante
+                setBackgroundColor(0xFF2D2D2D.toInt())
                 setPadding(16, 24, 16, 24)
             }
             return ViewHolder(button)
@@ -103,30 +136,12 @@ class MainActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val uriString = items[position]
             val uri = Uri.parse(uriString)
+            var nomeCifra = uri.lastPathSegment ?: "Cifra ${position + 1}"
 
-            var nomeCifra = "Cifra"
-            val cursor = holder.itemView.context.contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                    if (nameIndex != -1) {
-                        nomeCifra = it.getString(nameIndex) ?: "Cifra"
-                    }
-                }
-            }
-
-            if (nomeCifra == "Cifra" || nomeCifra.isEmpty()) {
-                nomeCifra = uri.lastPathSegment ?: "Cifra"
-                val idx = nomeCifra.lastIndexOf('/')
-                if (idx != -1) nomeCifra = nomeCifra.substring(idx + 1)
-            }
-
-            // Remove a extensão .pdf
             if (nomeCifra.endsWith(".pdf", ignoreCase = true)) {
                 nomeCifra = nomeCifra.substring(0, nomeCifra.length - 4)
             }
 
-            // Limita o nome a 17 caracteres para manter o botão organizado
             if (nomeCifra.length > 17) {
                 nomeCifra = nomeCifra.take(17) + "..."
             }

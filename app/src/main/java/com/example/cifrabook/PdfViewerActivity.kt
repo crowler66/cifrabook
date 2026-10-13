@@ -49,8 +49,22 @@ class PdfViewerActivity : AppCompatActivity() {
 
         val pdfUriString = intent.getStringExtra("PDF_URI")
         if (pdfUriString != null) {
-            RecentManager.addRecent(this, pdfUriString)
             val uri = Uri.parse(pdfUriString)
+
+            // Segurança: Valida se o arquivo pode ser lido antes de prosseguir (evita crash pós-reinstalação)
+            val canRead = try {
+                contentResolver.openFileDescriptor(uri, "r")?.close()
+                true
+            } catch (e: Exception) {
+                false
+            }
+
+            if (!canRead) {
+                finish()
+                return
+            }
+
+            RecentManager.addRecent(this, pdfUriString)
 
             btnToggleScroll.isEnabled = false
             btnToggleScroll.text = "A carregar cifra..."
@@ -103,6 +117,7 @@ class PdfViewerActivity : AppCompatActivity() {
 
             for (i in 0 until pageCount) {
                 val page = pdfRenderer.openPage(i)
+                // Mantém a proporção original de alta qualidade para o zoom da PhotoView
                 val bitmap = Bitmap.createBitmap(page.width * 2, page.height * 2, Bitmap.Config.ARGB_8888)
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 bitmaps.add(bitmap)
