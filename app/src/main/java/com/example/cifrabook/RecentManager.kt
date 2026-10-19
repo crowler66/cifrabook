@@ -17,7 +17,8 @@ object RecentManager {
         recents.remove(uriString)
         recents.add(0, uriString)
 
-        if (recents.size > 15) {
+        // Alterado de 15 para 18 para preencher perfeitamente a lista
+        if (recents.size > 18) {
             recents.removeAt(recents.size - 1)
         }
 

@@ -5,56 +5,73 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="@drawable/fundo_recentes"
     tools:context=".MainActivity">
 
-    <!-- Cabeçalho Compacto na Horizontal -->
+    <!-- Título do topo -->
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Cifrabook"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="24dp"
+        android:text="Cifrabook"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Botão do afinador -->
+    <ImageButton
+        android:id="@+id/btnTuner"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_bubble_button"
+        android:contentDescription="Afinador"
+        android:elevation="6dp"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_tuning_fork"
+        app:layout_constraintBottom_toBottomOf="@id/tvTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tvTitle" />
+
+    <!-- Subtítulo -->
     <TextView
         android:id="@+id/tvSubtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Biblioteca de Cifras"
-        android:textSize="12sp"
-        android:textColor="#AAAAAA"
-        android:layout_marginStart="16dp"
-        app:layout_constraintBottom_toBottomOf="@id/tvTitle"
-        app:layout_constraintStart_toEndOf="@id/tvTitle" />
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="4dp"
+        android:text="Seu Livro de Cifras:"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
 
-    <!-- Lista de Cifras otimizada para aproveitar a largura -->
+    <!-- Lista de cifras recentes -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewCifras"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
-        tools:listitem="@android:id/simple_list_item_1" />
+        app:layout_constraintTop_toBottomOf="@id/tvSubtitle" />
 
-    <!-- Botão Flutuante -->
+    <!-- Botão flutuante para importar PDF -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddPdf"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="24dp"
         android:contentDescription="Adicionar Cifra PDF"
         android:src="@android:drawable/ic_input_add"
-        app:tint="#FFFFFF"
         app:backgroundTint="#6200EE"
+        app:tint="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

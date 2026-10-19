@@ -34,7 +34,7 @@ android {
 dependencies {
     // Versão estável do leitor de PDF via JitPack
 
-    implementation("com.github.mhiew:android-pdf-viewer:3.2.0-beta.3")
+
     implementation("com.github.chrisbanes:PhotoView:2.3.0")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation(libs.androidx.activity.ktx)

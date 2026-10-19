@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
@@ -49,6 +50,13 @@ class MainActivity : AppCompatActivity() {
         recyclerViewCifras = findViewById(R.id.recyclerViewCifras)
         recyclerViewCifras.layoutManager = GridLayoutManager(this, 2)
 
+        // Configuração do Botão do Afinador (Bolha 3D)
+        val btnTuner = findViewById<ImageButton>(R.id.btnTuner)
+        btnTuner.setOnClickListener {
+            val intent = Intent(this, TunerActivity::class.java)
+            startActivity(intent)
+        }
+
         val fabAddPdf = findViewById<FloatingActionButton>(R.id.fabAddPdf)
         fabAddPdf.setOnClickListener {
             selecionarPdfLauncher.launch(arrayOf("application/pdf"))
@@ -62,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         val listaBruta = RecentManager.getRecents(this)
         val listaCifrasRecentes = listaBruta.filter {
             !it.isNullOrBlank() && !it.contains("msf:")
-        }.take(15)
+        }.take(18) // Alterado de 15 para 18 para preencher perfeitamente até 18 itens
 
         recyclerViewCifras.adapter = RecentesBotoesAdapter(listaCifrasRecentes) { uriString ->
             val uri = Uri.parse(uriString)
